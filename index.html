@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verb Trophy Hunter - ESL Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap');
+        
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #f0f9ff;
+        }
+        .heading-font { font-family: 'Fredoka', sans-serif; }
+        
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .level-up-anim {
+            animation: scaleUp 0.5s ease-out;
+        }
+        @keyframes scaleUp {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); background: #fef3c7; }
+            100% { transform: scale(1); }
+        }
+
+        /* Custom Scrollbar for Review Section */
+        #reviewContainer::-webkit-scrollbar {
+            width: 6px;
+        }
+        #reviewContainer::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4">
+
+    <!-- Header & Stats -->
+    <header class="w-full max-w-2xl bg-white rounded-3xl shadow-md p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="heading-font text-2xl text-indigo-600">Verb Trophy Hunter 🏆</h1>
+                <span id="levelBadge" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Level 1</span>
+            </div>
+            <div class="flex gap-2 text-2xl" id="livesContainer">
+                ❤️ ❤️ ❤️
+            </div>
+        </div>
+        <div class="flex justify-between items-end">
+            <div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Trophies Collected</div>
+                <div class="text-3xl font-bold text-amber-500" id="trophyDisplay">0</div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs font-bold text-gray-400 uppercase">Total Score</div>
+                <div class="text-3xl font-bold text-indigo-600" id="scoreDisplay">0</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Game Console -->
+    <main id="gameCard" class="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 text-center relative overflow-hidden">
+        
+        <div id="gameUI">
+            <p class="text-gray-400 font-bold uppercase tracking-widest text-sm mb-2">Current Challenge</p>
+            <h2 class="heading-font text-6xl text-gray-800 mb-8" id="currentVerb">???</h2>
+
+            <div class="space-y-4 mb-8 text-left">
+                <label class="block text-xs font-bold text-gray-400 mb-1 ml-2">TYPE THE SIMPLE PAST TENSE</label>
+                <input type="text" id="userInput" autocomplete="off" 
+                    class="w-full p-5 text-3xl text-center rounded-2xl border-4 border-indigo-50 focus:border-indigo-400 outline-none transition-all uppercase"
+                    placeholder="...">
+            </div>
+
+            <button onclick="checkVerb()" id="submitBtn" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl text-xl shadow-lg transition-all active:scale-95">
+                COLLECT TROPHY!
+            </button>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedback" class="hidden absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center p-6 z-10">
+            <div id="feedbackIcon" class="text-8xl mb-4">🏆</div>
+            <h3 id="feedbackTitle" class="heading-font text-3xl mb-2">Excellent!</h3>
+            <p id="feedbackText" class="text-gray-600 mb-6"></p>
+            <button onclick="nextVerb()" class="bg-indigo-600 text-white px-10 py-3 rounded-full font-bold">Continue</button>
+        </div>
+
+        <!-- Level Up / Game Over Screen -->
+        <div id="statusScreen" class="hidden absolute inset-0 flex flex-col items-center justify-center p-6 z-20 text-center">
+            <div id="statusIcon" class="text-9xl mb-4">⭐</div>
+            <h2 id="statusTitle" class="heading-font text-5xl mb-4">Level Up!</h2>
+            <p id="statusDesc" class="text-xl mb-8"></p>
+            <button onclick="dismissStatus()" id="statusBtn" class="bg-white text-gray-900 px-10 py-4 rounded-2xl font-bold text-xl shadow-xl">Next Level</button>
+        </div>
+    </main>
+
+    <!-- Trophy Collection -->
+    <div class="w-full max-w-2xl mt-8">
+        <h3 class="heading-font text-gray-500 mb-4 px-2">Your Trophy Room</h3>
+        <div id="trophyRoom" class="flex flex-wrap gap-2 mb-8">
+            <!-- Trophies appear here -->
+        </div>
+
+        <!-- NEW: Review Section -->
+        <div class="bg-white rounded-3xl shadow-md overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="heading-font text-gray-700 font-bold">Learning Review</h3>
+                <span class="text-xs text-gray-400 uppercase font-bold">Latest Attempts</span>
+            </div>
+            <div id="reviewContainer" class="max-h-64 overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-gray-50 sticky top-0 text-xs font-bold text-gray-400 uppercase">
+                        <tr>
+                            <th class="px-6 py-3">Base Verb</th>
+                            <th class="px-6 py-3">Your Answer</th>
+                            <th class="px-6 py-3">Correct Past Tense</th>
+                            <th class="px-6 py-3">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviewTableBody" class="text-sm">
+                        <!-- History rows will be injected here -->
+                        <tr id="emptyReview">
+                            <td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Start playing to see your review!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const levels = {
+            1: [
+                { base: "play", past: "played", type: "regular" },
+                { base: "visit", past: "visited", type: "regular" },
+                { base: "watch", past: "watched", type: "regular" },
+                { base: "dance", past: "danced", type: "regular" },
+                { base: "cook", past: "cooked", type: "regular" },
+                { base: "walk", past: "walked", type: "regular" }
+            ],
+            2: [
+                { base: "go", past: "went", type: "irregular" },
+                { base: "see", past: "saw", type: "irregular" },
+                { base: "eat", past: "ate", type: "irregular" },
+                { base: "buy", past: "bought", type: "irregular" },
+                { base: "make", past: "made", type: "irregular" },
+                { base: "run", past: "ran", type: "irregular" }
+            ],
+            3: [
+                { base: "put", past: "put", type: "irregular" },
+                { base: "read", past: "read", type: "irregular" },
+                { base: "write", past: "wrote", type: "irregular" },
+                { base: "fly", past: "flew", type: "irregular" },
+                { base: "teach", past: "taught", type: "irregular" },
+                { base: "catch", past: "caught", type: "irregular" }
+            ]
+        };
+
+        let currentLevel = 1;
+        let lives = 3;
+        let trophies = 0;
+        let score = 0;
+        let levelTrophies = 0;
+        const trophiesToLevelUp = 5; 
+        let activeVerb = null;
+
+        const currentVerbEl = document.getElementById('currentVerb');
+        const userInput = document.getElementById('userInput');
+        const feedback = document.getElementById('feedback');
+        const statusScreen = document.getElementById('statusScreen');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const trophyDisplay = document.getElementById('trophyDisplay');
+        const levelBadge = document.getElementById('levelBadge');
+        const livesContainer = document.getElementById('livesContainer');
+        const trophyRoom = document.getElementById('trophyRoom');
+        const gameCard = document.getElementById('gameCard');
+        const reviewTableBody = document.getElementById('reviewTableBody');
+        const emptyReview = document.getElementById('emptyReview');
+
+        function initGame() {
+            setNewVerb();
+            updateLivesUI();
+        }
+
+        function setNewVerb() {
+            const levelVerbs = levels[currentLevel];
+            let newVerb;
+            do {
+                newVerb = levelVerbs[Math.floor(Math.random() * levelVerbs.length)];
+            } while (activeVerb && newVerb.base === activeVerb.base);
+            
+            activeVerb = newVerb;
+            currentVerbEl.innerText = activeVerb.base;
+            userInput.value = "";
+            userInput.classList.remove('border-red-400');
+            userInput.focus();
+        }
+
+        function updateLivesUI() {
+            livesContainer.innerHTML = '❤️'.repeat(lives);
+            if (lives === 0) showGameOver();
+        }
+
+        function checkVerb() {
+            const val = userInput.value.trim().toLowerCase();
+            const correct = activeVerb.past.toLowerCase();
+            const isCorrect = val === correct;
+            
+            // Log to Review Section
+            addToReview(activeVerb.base, val || "(empty)", activeVerb.past, isCorrect);
+
+            if (isCorrect) {
+                handleSuccess(correct);
+            } else {
+                handleFailure(correct);
+            }
+        }
+
+        function addToReview(base, userAns, correctAns, isCorrect) {
+            if (emptyReview) emptyReview.remove();
+
+            const row = document.createElement('tr');
+            row.className = isCorrect ? "bg-green-50 border-b border-white" : "bg-red-50 border-b border-white";
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 font-bold text-gray-700 uppercase">${base}</td>
+                <td class="px-6 py-4 text-gray-600 uppercase">${userAns}</td>
+                <td class="px-6 py-4 font-bold text-indigo-600 uppercase">${correctAns}</td>
+                <td class="px-6 py-4">
+                    ${isCorrect ? 
+                        '<span class="bg-green-500 text-white text-[10px] px-2 py-1 rounded-full font-bold">CORRECT</span>' : 
+                        '<span class="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full font-bold">ERROR</span>'}
+                </td>
+            `;
+            
+            reviewTableBody.prepend(row);
+        }
+
+        function handleSuccess(correct) {
+            const isIrregular = activeVerb.type === 'irregular';
+            const points = isIrregular ? 25 : 10;
+            
+            score += points;
+            trophies++;
+            levelTrophies++;
+            
+            feedback.classList.remove('hidden');
+            document.getElementById('feedbackIcon').innerText = isIrregular ? "🥇" : "🥉";
+            document.getElementById('feedbackTitle').innerText = isIrregular ? "IRREGULAR MASTER!" : "GOOD JOB!";
+            document.getElementById('feedbackText').innerText = `+${points} points for "${correct}"`;
+            
+            const t = document.createElement('span');
+            t.innerText = isIrregular ? "🥇" : "🥉";
+            t.className = "text-2xl";
+            t.title = activeVerb.base;
+            trophyRoom.appendChild(t);
+            
+            scoreDisplay.innerText = score;
+            trophyDisplay.innerText = trophies;
+        }
+
+        function handleFailure(correct) {
+            lives--;
+            updateLivesUI();
+            
+            if (lives > 0) {
+                gameCard.classList.add('shake');
+                setTimeout(() => gameCard.classList.remove('shake'), 500);
+                
+                feedback.classList.remove('hidden');
+                document.getElementById('feedbackIcon').innerText = "❌";
+                document.getElementById('feedbackTitle').innerText = "Oopsy!";
+                document.getElementById('feedbackText').innerText = `The past of "${activeVerb.base}" is "${correct}". You lost 1 life!`;
+                
+                userInput.value = "";
+            }
+        }
+
+        function nextVerb() {
+            feedback.classList.add('hidden');
+            
+            if (levelTrophies >= trophiesToLevelUp) {
+                if (currentLevel < 3) {
+                    showLevelUp();
+                } else {
+                    showGameWin();
+                }
+            } else {
+                setNewVerb();
+            }
+        }
+
+        function showLevelUp() {
+            statusScreen.className = "absolute inset-0 bg-green-500 text-white flex flex-col items-center justify-center p-6 z-20 text-center";
+            document.getElementById('statusIcon').innerText = "🚀";
+            document.getElementById('statusTitle').innerText = "Level Up!";
+            document.getElementById('statusDesc').innerText = `Great work! Level ${currentLevel + 1} unlocked. Lives replenished!`;
+            document.getElementById('statusBtn').innerText = "Start Level " + (currentLevel + 1);
+            statusScreen.classList.remove('hidden');
+        }
+
+        function showGameOver() {
+            statusScreen.className = "absolute inset-0 bg-red-600 text-white flex flex-col items-center justify-center p-6 z-20 text-center";
+            document.getElementById('statusIcon').innerText = "💀";
+            document.getElementById('statusTitle').innerText = "Game Over";
+            document.getElementById('statusDesc').innerText = "You ran out of lives. Review your errors below and try again!";
+            document.getElementById('statusBtn').innerText = "Try Again";
+            statusScreen.classList.remove('hidden');
+        }
+
+        function showGameWin() {
+            statusScreen.className = "absolute inset-0 bg-indigo-900 text-white flex flex-col items-center justify-center p-6 z-20 text-center";
+            document.getElementById('statusIcon').innerText = "👑";
+            document.getElementById('statusTitle').innerText = "Grand Champion!";
+            document.getElementById('statusDesc').innerText = `Final Score: ${score}. You've mastered all verb levels!`;
+            document.getElementById('statusBtn').innerText = "Play Again";
+            document.getElementById('statusBtn').onclick = () => location.reload();
+            statusScreen.classList.remove('hidden');
+        }
+
+        function dismissStatus() {
+            statusScreen.classList.add('hidden');
+            if (lives === 0) {
+                lives = 3;
+                levelTrophies = 0;
+            } else {
+                currentLevel++;
+                lives = 3;
+                levelTrophies = 0;
+                levelBadge.innerText = "Level " + currentLevel;
+                gameCard.classList.add('level-up-anim');
+                setTimeout(() => gameCard.classList.remove('level-up-anim'), 500);
+            }
+            updateLivesUI();
+            setNewVerb();
+        }
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkVerb();
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
